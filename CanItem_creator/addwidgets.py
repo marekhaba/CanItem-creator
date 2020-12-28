@@ -9,7 +9,7 @@ COLORS = ["white", "grey", "black",
           "pink", "violet", "purple",
           "light blue", "blue", "cyan",
           "lime", "olive", "green"]
-
+#TODO Add a way to track invalid ouptut
 class BaseEdit(ttk.Frame):
     """
     Returns str

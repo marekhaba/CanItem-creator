@@ -19,6 +19,30 @@ class TestUtils(unittest.TestCase):
 
 class TestCodetext(unittest.TestCase):
 
+    def test_canvas_name_config(self):
+        master = tk.Tk()
+        canvas_name = "can"
+        ctext = codetext.CodeText(master, canvas_name=canvas_name, canvas_kwargs={"bg": "black"})
+        code = f"""import tkinter\n\n{canvas_name} = tkinter.Canvas(bg='black')\n{canvas_name}.pack()\n\n\n{canvas_name}.mainloop()\n\n"""
+        self.assertEqual(ctext.get(1.0, "end"), code)
+        canvas_name = "c"
+        ctext.configure_canvas(canvas_name=canvas_name)
+        code = f"""import tkinter\n\n{canvas_name} = tkinter.Canvas(bg='black')\n{canvas_name}.pack()\n\n\n{canvas_name}.mainloop()\n\n"""
+        self.assertEqual(ctext.get(1.0, "end"), code)
+        ctext.add_item("i544", "rectangle", *(1, 2, 3, 4), **{"fill": "pink"})
+        self.assertEqual(ctext.get_item("i544"), "c.create_rectangle(1, 2, 3, 4, fill='pink')\n")
+        ctext.configure_canvas(canvas_name="canvas")
+        self.assertEqual(ctext.get_item("i544"), "canvas.create_rectangle(1, 2, 3, 4, fill='pink')\n")
+        master.quit()
+
+    def test_canvas_kwargs_config(self):
+        master = tk.Tk()
+        ctext = codetext.CodeText(master, canvas_name="c", canvas_kwargs={"bg": "black"})
+        self.assertEqual(ctext.get("canvas_kwargs.first", "canvas_kwargs.last"), "bg='black'")
+        ctext.configure_canvas(bg="blue", width=500)
+        self.assertEqual(ctext.get("canvas_kwargs.first", "canvas_kwargs.last"), "bg='blue', width=500")
+        master.quit()
+
     def test_add_item(self):
         master = tk.Tk()
         ctext = codetext.CodeText(master, canvas_name="c")

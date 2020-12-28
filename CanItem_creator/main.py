@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import asksaveasfile
 
-from addwidgets import IntEdit
+from addwidgets import IntEdit, StrEdit
 
 from sidebars import OptionsBar, ToolBar
 from actionmanager import ActionManager
@@ -45,13 +45,15 @@ class TkinterPaint(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        DEFAULT_CANVAS_NAME = "ca"
+
         self.optionsbar = OptionsBar(self)
         self.optionsbar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
 
         self.toolbar = ToolBar(self, self.optionsbar)
         self.toolbar.grid(row=1, column=0, sticky="n", padx=2, pady=2)
 
-        self.codetext = CodeText(self, width=100, wrap="none")
+        self.codetext = CodeText(self, width=100, wrap="none", canvas_name=DEFAULT_CANVAS_NAME)
         self.codetext.grid(row=0, column=2, rowspan=3)
 
         self.canvas = PaintCanvas(self, self.toolbar, self.optionsbar, self.codetext, background="white")
@@ -72,6 +74,16 @@ class TkinterPaint(tk.Tk):
         self.canvas_grid = IntEdit(self.canvas_frame, "grid", entry_width=3)
         self.canvas_grid.var.trace_add("write", self.change_grid)
         self.canvas_grid.pack(side="right", padx=3, pady=3)
+        self.canvas_name_edit = StrEdit(self.canvas_frame, "name", entry_width=6) #TODO breaks if it is empty
+        self.canvas_name_edit.set(DEFAULT_CANVAS_NAME)
+        self.canvas_name_edit.var.trace_add("write", lambda *args: self.configure_canvas(canvas_name=self.canvas_name_edit.get()))
+        self.canvas_name_edit.pack(side="left", padx=3, pady=3)
+        self.canvas_width_edit = IntEdit(self.canvas_frame, "width", entry_width=4, default=400)
+        self.canvas_width_edit.var.trace_add("write", lambda *args: self.configure_canvas(width=self.canvas_width_edit.get()))
+        self.canvas_width_edit.pack(side="left", padx=3, pady=3)
+        self.canvas_height_edit = IntEdit(self.canvas_frame, "height", entry_width=4, default=400)
+        self.canvas_height_edit.var.trace_add("write", lambda *args: self.configure_canvas(height=self.canvas_height_edit.get()))
+        self.canvas_height_edit.pack(side="left", padx=3, pady=3)
 
 
         self.toolbar.add_tool("cursor")
@@ -127,8 +139,9 @@ class TkinterPaint(tk.Tk):
         #    f.write()
 
     def configure_canvas(self, **kwargs):
+        canvas_name = kwargs.pop("canvas_name", None)
         self.canvas.configure(**kwargs)
-        self.codetext.canvas_config.update(kwargs)
+        self.codetext.configure_canvas(canvas_name=canvas_name, **kwargs)
 
 class PaintCanvas(tk.Canvas):
     """
@@ -159,15 +172,14 @@ class PaintCanvas(tk.Canvas):
         self.GRID_COLOR = "gray40"
         self._is_grid = True
 
-        self.items = set()#keeps all the <_id>s of items (in reallity they are tags I use them as an _id)
+        #keeps all the <_id>s of items (in reallity they are tags I use them as an _id)
+        self.items = set()
         self.holo_item = None
 
         self.bind("<Button-1>", self.press)
         self.bind("<Motion>", self.motion)
         self.bind("<ButtonRelease-1>", self.release)
         self.bind("<Button-3>", self.press_right)
-
-        self.canvas_name = "ca"
         
         #used in the functionality that allows scalling from xy
         self.from_x = 0
@@ -263,12 +275,7 @@ class PaintCanvas(tk.Canvas):
             _id = f"i{item}"
         self.itemconfigure(item, tags=(_id,))
         self.items.add(_id)
-        #test
-        #self.itemconfigure(item)
-        #self.codetext.add_code(self)
-        #self.codetext.add_code(f"{self.canvas_name}.create_{name}({args_to_str(*args)}, {kwargs_to_str(**kwargs)})\n", item)
         self.codetext.add_item(_id, name, *args, **self._remove_default_options(kwargs, item))
-        #self.code.append(f"{self.canvas_name}.create_{name}({args_to_str(*args)}, {kwargs_to_str(**kwargs)})")
         return _id
 
     def _delete_item(self, item):
@@ -278,7 +285,6 @@ class PaintCanvas(tk.Canvas):
         """
         self.codetext.remove_item(item)
         self.items.remove(item)
-        #self.code.pop()
         self.delete(item)
 
     def _grid(self, x, y):

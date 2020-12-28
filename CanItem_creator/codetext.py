@@ -7,7 +7,7 @@ class CodeText(tk.Text):
     """
     def __init__(self, master, *args, **kwargs):
         self.canvas_name = kwargs.pop("canvas_name", "ca")
-        self.canvas_config = kwargs.pop("canvas_config", {})
+        self.canvas_kwargs = kwargs.pop("canvas_kwargs", {})
         super().__init__(master, *args, **kwargs)
 
         self.is_from_xy = False
@@ -15,21 +15,36 @@ class CodeText(tk.Text):
         self.from_y = 0
 
         self.insert("1.0", "import tkinter\n\n")
-        self.insert("3.0", f"{self.canvas_name} = tkinter.Canvas({utils.kwargs_to_str(**self.canvas_config)})\n")
-        self.insert("4.0", f"{self.canvas_name}.pack()\n\n\n\n")
+        self.insert("3.0", self.canvas_name, "canvas_name")
+        self.insert("3.end", " = tkinter.Canvas(")
+        
+        self.insert("3.end", utils.kwargs_to_str(**self.canvas_kwargs), "canvas_kwargs")
+        self.insert("3.end", ")\n")
+        self.mark_set("canvas_no_kwargs", "3.end - 1 char") # used in case canvas has no kwargs
+        self.insert("4.0", self.canvas_name, "canvas_name")
+        self.insert("4.end", ".pack()\n\n\n\n")
         self.mark_set("xy_mark", "5.0")
         self.mark_set("code", "6.0")
-        self.insert("7.0", f"{self.canvas_name}.mainloop()")
+        self.insert("7.0", self.canvas_name, "canvas_name")
+        self.insert("7.end", ".mainloop()")
 
         #bind so that tge user can't edit the text:
         self.bind("<KeyPress>", lambda *e: "break")
 
-    #def add_code(self, text, tag):
-    #    """
-    #    appends line of code specified in text,
-    #    specify the name of item in tag
-    #    """
-    #    self.insert("code", text, f"tag{tag}")
+    def configure_canvas(self, canvas_name=None, **kwargs):
+        """
+        changes the configuration of canvas in code.
+        Use canvas_name kwarg to change the name of the canvas
+        """
+        if canvas_name is not None:
+            self.canvas_name = canvas_name
+            self.change_code("canvas_name", canvas_name)
+        if kwargs:
+            no_kwargs = not self.canvas_kwargs
+            self.canvas_kwargs.update(kwargs)
+            if no_kwargs:
+                self.insert("canvas_no_kwargs", utils.kwargs_to_str(**self.canvas_kwargs), "canvas_kwargs")
+            self.change_code("canvas_kwargs", utils.kwargs_to_str(**self.canvas_kwargs))
 
     def from_xy(self, x, y):
         """
@@ -81,7 +96,8 @@ class CodeText(tk.Text):
         Adds canvas item to code.
         id_ should beggin with "i"
         """
-        self.insert("code", f"{self.canvas_name}.create_{name}(", f"{id_}")
+        self.insert("code", self.canvas_name, (f"{id_}", "canvas_name"))
+        self.insert("code", f".create_{name}(", f"{id_}")
         #insert coords
         i = 1
         cord_type = "y"
@@ -108,7 +124,7 @@ class CodeText(tk.Text):
         self.delete("code -1 line", "code")
 
     #def simple_code_build(self, canvas):
-    #    self. build_code(canvas, self.canvas_name, self.canvas_config)
+    #    self. build_code(canvas, self.canvas_name, self.canvas_kwargs)
 
     def get_item(self, id_):
         """
@@ -138,5 +154,15 @@ class CodeText(tk.Text):
         tags are:
         - id_ of item
         - {id_ of item}coords
+        - canvas_name
+        - canvas_kwargs
         """
-        self.replace(f"{tag}.first", f"{tag}.last", new, (f"{tag}",))
+        for tag_i in self.tag_ranges(tag)[0::2]:
+            tag_range = self.tag_nextrange(tag, tag_i)
+            if not tag_range:
+                continue
+            #this can couse errors when the text has tags on just parts of the text
+            #but it will work of now
+            tags = self.tag_names(tag_range[0])
+            self.replace(tag_range[0], tag_range[1], new, tags)
+        #self.replace(f"{tag}.first", f"{tag}.last", new, (f"{tag}",))
