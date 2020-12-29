@@ -64,3 +64,18 @@ def revert_x_y(x, y, *args):
                 continue
             num = y+int(arg[1:])
             yield f"{num}"
+
+def remove_default_options(options, defaults):
+    """
+    options should be regular dictionary
+    defaults should be the tkinter widget.configure response
+    """
+    without_defaults = {}
+    for option, value in options.items():
+        if is_float(defaults[option][3]):
+            if float(value) != float(defaults[option][3]):
+                without_defaults[option] = value
+            continue
+        if value != defaults[option][3]:
+            without_defaults[option] = value
+    return without_defaults

@@ -7,7 +7,7 @@ from addwidgets import IntEdit, StrEdit
 from sidebars import OptionsBar, ToolBar
 from actionmanager import ActionManager
 from codetext import CodeText
-from utils import is_float
+from utils import remove_default_options
 
 # def options_to_str(options):
 #     """
@@ -74,14 +74,14 @@ class TkinterPaint(tk.Tk):
         self.canvas_grid = IntEdit(self.canvas_frame, "grid", entry_width=3)
         self.canvas_grid.var.trace_add("write", self.change_grid)
         self.canvas_grid.pack(side="right", padx=3, pady=3)
-        self.canvas_name_edit = StrEdit(self.canvas_frame, "name", entry_width=6) #TODO breaks if it is empty
+        self.canvas_name_edit = StrEdit(self.canvas_frame, "name", entry_width=6, validate=lambda v: v != "")
         self.canvas_name_edit.set(DEFAULT_CANVAS_NAME)
         self.canvas_name_edit.var.trace_add("write", lambda *args: self.configure_canvas(canvas_name=self.canvas_name_edit.get()))
         self.canvas_name_edit.pack(side="left", padx=3, pady=3)
-        self.canvas_width_edit = IntEdit(self.canvas_frame, "width", entry_width=4, default=400)
+        self.canvas_width_edit = IntEdit(self.canvas_frame, "width", entry_width=4, default=int(self.canvas["width"]))
         self.canvas_width_edit.var.trace_add("write", lambda *args: self.configure_canvas(width=self.canvas_width_edit.get()))
         self.canvas_width_edit.pack(side="left", padx=3, pady=3)
-        self.canvas_height_edit = IntEdit(self.canvas_frame, "height", entry_width=4, default=400)
+        self.canvas_height_edit = IntEdit(self.canvas_frame, "height", entry_width=4, default=int(self.canvas["height"]))
         self.canvas_height_edit.var.trace_add("write", lambda *args: self.configure_canvas(height=self.canvas_height_edit.get()))
         self.canvas_height_edit.pack(side="left", padx=3, pady=3)
 
@@ -140,8 +140,9 @@ class TkinterPaint(tk.Tk):
 
     def configure_canvas(self, **kwargs):
         canvas_name = kwargs.pop("canvas_name", None)
-        self.canvas.configure(**kwargs)
-        self.codetext.configure_canvas(canvas_name=canvas_name, **kwargs)
+        options = remove_default_options(kwargs, self.canvas.configure())
+        self.canvas.configure(**options)
+        self.codetext.configure_canvas(canvas_name=canvas_name, **options)
 
 class PaintCanvas(tk.Canvas):
     """
@@ -192,17 +193,7 @@ class PaintCanvas(tk.Canvas):
         return self.optionsbar.get()
 
     def _remove_default_options(self, options, item):
-        defaults = self.itemconfigure(item)
-        without_defaults = {}
-        for option, value in options.items():
-            if is_float(defaults[option][3]):
-                if float(value) != float(defaults[option][3]):
-                    without_defaults[option] = value
-                continue
-            if value != defaults[option][3]:
-                without_defaults[option] = value
-        return without_defaults
-
+        return remove_default_options(options, self.itemconfigure(item))
 
     def set_grid(self, grid):
         """
