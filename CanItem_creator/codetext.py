@@ -166,3 +166,7 @@ class CodeText(tk.Text):
             tags = self.tag_names(tag_range[0])
             self.replace(tag_range[0], tag_range[1], new, tags)
         #self.replace(f"{tag}.first", f"{tag}.last", new, (f"{tag}",))
+
+    def update_theme(self):
+        self.configure(background=self.option_get("background", "Text"),
+                       foreground=self.option_get("foreground", "Text"))

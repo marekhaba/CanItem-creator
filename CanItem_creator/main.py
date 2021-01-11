@@ -1,8 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import asksaveasfile
+import json
 
 from addwidgets import IntEdit, StrEdit
+from thememanager import ThemeManager
 
 from sidebars import OptionsBar, ToolBar
 from actionmanager import ActionManager
@@ -44,14 +46,19 @@ from utils import remove_default_options
 class TkinterPaint(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.custom_config = {}
+        self.load_config()
+
+        self.theme_manager = ThemeManager(self)
+        self.theme_manager.set_theme(self.custom_config["theme"])
 
         DEFAULT_CANVAS_NAME = "ca"
 
         self.optionsbar = OptionsBar(self)
-        self.optionsbar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        self.optionsbar.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
 
         self.toolbar = ToolBar(self, self.optionsbar)
-        self.toolbar.grid(row=1, column=0, sticky="n", padx=2, pady=2)
+        self.toolbar.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
 
         self.codetext = CodeText(self, width=100, wrap="none", canvas_name=DEFAULT_CANVAS_NAME)
         self.codetext.grid(row=0, column=2, rowspan=3)
@@ -60,10 +67,17 @@ class TkinterPaint(tk.Tk):
         self.canvas.grid(row=1, column=1, padx=2, pady=2, sticky="n")
 
         self.menu = tk.Menu(self)
+        
         self["menu"] = self.menu
         self.menu.add_command(label="Save", command=self.save)
         self.menu.add_command(label="Undo", command=ActionManager.undo)
         self.menu.add_command(label="Redo", command=ActionManager.redo)
+
+        self._menu_themes = tk.Menu(self.menu, tearoff=False)
+        #self._menu_themes.add_command(label="default", command=lambda : self.set_theme("", default=True))
+        self._menu_themes.add_command(label="dark", command=lambda : self.set_theme("darkTKC"))
+        self._menu_themes.add_command(label="light", command=lambda : self.set_theme("lightTKC"))
+        self.menu.add_cascade(menu=self._menu_themes, label="theme")
 
         self.canvas_frame = ttk.Frame(self)
         self.canvas_frame.grid(row=2, column=1, sticky="ne")
@@ -84,7 +98,6 @@ class TkinterPaint(tk.Tk):
         self.canvas_height_edit = IntEdit(self.canvas_frame, "height", entry_width=4, default=int(self.canvas["height"]))
         self.canvas_height_edit.var.trace_add("write", lambda *args: self.configure_canvas(height=self.canvas_height_edit.get()))
         self.canvas_height_edit.pack(side="left", padx=3, pady=3)
-
 
         self.toolbar.add_tool("cursor")
         self.toolbar.add_tool("line")
@@ -123,6 +136,15 @@ class TkinterPaint(tk.Tk):
             if self.toolbar.tool.get() == "set_xy":
                 self.toolbar.set_tool(None)
 
+    def load_config(self):
+        with open("config.json", "r") as f:
+            json_obj = json.load(f)
+            self.custom_config = json_obj
+
+    def save_config(self):
+        with open("config.json", "w") as f:
+            f.write(json.dumps(self.custom_config))
+
     def save(self):
         """
         Saves the content of codetext
@@ -138,11 +160,29 @@ class TkinterPaint(tk.Tk):
         #with open(file, "r") as f:
         #    f.write()
 
+    def set_theme(self, name):
+        canvas_color = self.canvas.configure("bg")
+        self.theme_manager.set_theme(name)
+        #self.refresh()
+        self.codetext.update_theme()
+        self.canvas.configure(bg=canvas_color[-1])
+        self.update()
+        self.custom_config["theme"] = name
+        self.save_config()
+        #self.recreate_listboxes()
+    
+    #def recreate_listboxes(self):
+    #    self.children
+
     def configure_canvas(self, **kwargs):
         canvas_name = kwargs.pop("canvas_name", None)
         options = remove_default_options(kwargs, self.canvas.configure())
         self.canvas.configure(**options)
         self.codetext.configure_canvas(canvas_name=canvas_name, **options)
+
+    #def refresh(self):
+    #    self.destroy()
+    #    self.__init__()
 
 class PaintCanvas(tk.Canvas):
     """
@@ -382,7 +422,7 @@ class PaintCanvas(tk.Canvas):
         if self.holo_item is None:
             return
         if self.toolbar.get() in self.n_cord:
-            self.create_item(self.toolbar.get(), *self.curent_coords, event.x, event.y, **self.get_options())
+            self.create_item(self.toolbar.get(), *self.curent_coords, **self.get_options())
             self.delete(self.holo_item)
             self.holo_item = None
 

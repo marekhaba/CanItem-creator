@@ -66,7 +66,7 @@ class ToolBar(ttk.Frame):
         """
         self.tools[name] = ttk.Radiobutton(self, variable=self.tool, value=name, text=name,
                                            image=image, style="Toolbutton")
-        self.tools[name].pack(side="top", padx=3, pady=3, ipadx=3, ipady=3)
+        self.tools[name].pack(side="top", padx=3, pady=3, ipadx=3, ipady=3, fill="x")
 
     def get(self):
         """
