@@ -4,20 +4,6 @@ Info about all items and their options that can be used
 import tkinter as tk
 import addwidgets
 
-def get_options(item):
-    canvas = tk.Canvas()
-    create = {#EW
-        "line": canvas.create_line(1, 1, 1, 1),
-        "rectangle": canvas.create_rectangle(1, 1, 1, 1),
-        "oval": canvas.create_oval(1, 1, 1, 1),
-        "polygon": canvas.create_polygon(1, 1, 1, 1),
-        "arc": canvas.create_arc(1, 1, 1, 1),
-        "text": canvas.create_text(1, 1, text="text")
-    }
-    i = create[item]
-    return canvas.itemconfigure(i)
-# o = get_options("text")
-# print(o)
 #https://tcl.tk/man/tcl8.6/TkCmd/canvas.htm
 OPTIONS = {
     #Common options:
@@ -197,24 +183,6 @@ OPTIONS = {
         "edit": None, #PathName
     }
 }
-
-# def update_defaults():
-#     canvas = tk.Canvas()
-#     create = {#EW
-#         "arc": canvas.create_arc(1, 2, 3, 4),
-#         "line": canvas.create_line(1, 2, 3, 4),
-#         "oval": canvas.create_oval(1, 2, 3, 4),
-#         "polygon": canvas.create_polygon(1, 2, 3, 4),
-#         "rectangle": canvas.create_rectangle(1, 2, 3, 4),
-#         "text": canvas.create_text(1, 2, text="text")
-#     }
-#     for name, item in create.items():
-#         for option, values in canvas.itemconfigure(item).items():
-#             if "default" in OPTIONS[option] and OPTIONS[option]["default"] != values[3]:
-#                 raise ValueError #TODO SOMEHOW FIX THIS, THIS FUNCTIONALITY WAS MOVED TO CANVAS
-#             OPTIONS[option]["default"] = values[3]
-#     canvas.destroy()
-# update_defaults()
 
 ITEMS = {
     "arc": {

@@ -1,58 +1,23 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import asksaveasfile
-import json
 
-from addwidgets import IntEdit, StrEdit
+import addwidgets
 from thememanager import ThemeManager
+from configmanager import ConfigManager
 
 from sidebars import OptionsBar, ToolBar
 from actionmanager import ActionManager
 from codetext import CodeText
 from utils import remove_default_options
 
-# def options_to_str(options):
-#     """
-#     transforms the tkinter options thingy to string
-#     """
-#     string = ""
-#     for option in options.values():
-#         if is_float(option[3]) and is_float(option[4]):
-#             if float(option[3]) != float(option[4]):
-#                 string += f", {option[0]} = {option[4]}"
-#             continue
-#         if option[3] != option[4]:
-#             string += f", {option[0]} = {option[4]}"
-#     return string
-
-# def kwargs_to_str(**kwargs):
-#     return ', '.join('%s=%r' % x for x in kwargs.items())
-
-# def build_code(canvas: tk.Canvas, canvas_name, canvas_config):
-#     """
-#     #not really used, replaced with a more fancy way
-#     will build code that will recreate all items in canvas
-#     returns a string with that code
-#     """
-#     code = "import tkinter\n\n"
-#     code += f"{canvas_name} = tkinter.Canvas({kwargs_to_str(**canvas_config)})\n"
-#     code += f"{canvas_name}.pack()\n\n"
-#     items = canvas.find("all")
-#     for item in items:
-#         code += f"{canvas_name}.create_{canvas.type(item)}({args_to_str(canvas.coords(item))}{options_to_str(canvas.itemconfigure(item))})"
-#     code += f"\n{canvas_name}.mainloop()"
-#     return code
-
 class TkinterPaint(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.custom_config = {}
-        self.load_config()
+        ConfigManager.load()
 
         self.theme_manager = ThemeManager(self)
-        self.theme_manager.set_theme(self.custom_config["theme"])
-
-        DEFAULT_CANVAS_NAME = "ca"
+        self.theme_manager.set_theme(ConfigManager.get("theme"))
 
         self.optionsbar = OptionsBar(self)
         self.optionsbar.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
@@ -60,10 +25,14 @@ class TkinterPaint(tk.Tk):
         self.toolbar = ToolBar(self, self.optionsbar)
         self.toolbar.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
 
-        self.codetext = CodeText(self, width=100, wrap="none", canvas_name=DEFAULT_CANVAS_NAME)
+        self.codetext = CodeText(self, width=100, wrap="none", canvas_name=ConfigManager.get("canvas_name"))
         self.codetext.grid(row=0, column=2, rowspan=3)
 
-        self.canvas = PaintCanvas(self, self.toolbar, self.optionsbar, self.codetext, background="white")
+        self.canvas_xy_var = tk.StringVar()
+        self.canvas_xy_label = ttk.Label(self, textvariable=self.canvas_xy_var)
+        self.canvas_xy_label.grid(row=0, column=0, sticky="se")
+
+        self.canvas = PaintCanvas(self, self.toolbar, self.optionsbar, self.codetext, self.canvas_xy_var, background="white")
         self.canvas.grid(row=1, column=1, padx=2, pady=2, sticky="n")
 
         self.menu = tk.Menu(self)
@@ -74,30 +43,32 @@ class TkinterPaint(tk.Tk):
         self.menu.add_command(label="Redo", command=ActionManager.redo)
 
         self._menu_themes = tk.Menu(self.menu, tearoff=False)
-        #self._menu_themes.add_command(label="default", command=lambda : self.set_theme("", default=True))
         self._menu_themes.add_command(label="dark", command=lambda : self.set_theme("darkTKC"))
         self._menu_themes.add_command(label="light", command=lambda : self.set_theme("lightTKC"))
         self.menu.add_cascade(menu=self._menu_themes, label="theme")
 
         self.canvas_frame = ttk.Frame(self)
-        self.canvas_frame.grid(row=2, column=1, sticky="ne")
+        self.canvas_frame.grid(row=2, column=1, sticky="nw")
         self.grid_state = tk.BooleanVar(self)
         self.grid_toggle = ttk.Checkbutton(self.canvas_frame, command=self._toggle_grid, variable=self.grid_state, onvalue=True, offvalue=False, text="show grid")
-        self.grid_toggle.pack(side="right", padx=3, pady=3)
+        self.grid_toggle.grid(row=0, column=0, padx=3, pady=0, sticky="w")
         self.grid_state.set(True)
-        self.canvas_grid = IntEdit(self.canvas_frame, "grid", entry_width=3)
+        self.canvas_grid = addwidgets.IntEdit(self.canvas_frame, "grid", entry_width=3, default=1)
         self.canvas_grid.var.trace_add("write", self.change_grid)
-        self.canvas_grid.pack(side="right", padx=3, pady=3)
-        self.canvas_name_edit = StrEdit(self.canvas_frame, "name", entry_width=6, validate=lambda v: v != "")
-        self.canvas_name_edit.set(DEFAULT_CANVAS_NAME)
+        self.canvas_grid.grid(row=1, column=0, padx=3, pady=0, sticky="w")
+        self.canvas_name_edit = addwidgets.StrEdit(self.canvas_frame, "name", entry_width=6, validate=lambda v: v != "")
+        self.canvas_name_edit.set(ConfigManager.get("canvas_name"))
         self.canvas_name_edit.var.trace_add("write", lambda *args: self.configure_canvas(canvas_name=self.canvas_name_edit.get()))
-        self.canvas_name_edit.pack(side="left", padx=3, pady=3)
-        self.canvas_width_edit = IntEdit(self.canvas_frame, "width", entry_width=4, default=int(self.canvas["width"]))
+        self.canvas_name_edit.grid(row=0, column=1, padx=3, pady=0, sticky="w")
+        self.canvas_color_edit = addwidgets.ColorEdit(self.canvas_frame, "color", default="white")
+        self.canvas_color_edit.var.trace_add("write", lambda *args: self.configure_canvas(background=self.canvas_color_edit.get()))
+        self.canvas_color_edit.grid(row=1, column=1, padx=3, pady=0, sticky="w")
+        self.canvas_width_edit = addwidgets.IntEdit(self.canvas_frame, "width", entry_width=4, default=int(self.canvas["width"]))
         self.canvas_width_edit.var.trace_add("write", lambda *args: self.configure_canvas(width=self.canvas_width_edit.get()))
-        self.canvas_width_edit.pack(side="left", padx=3, pady=3)
-        self.canvas_height_edit = IntEdit(self.canvas_frame, "height", entry_width=4, default=int(self.canvas["height"]))
+        self.canvas_width_edit.grid(row=0, column=2, padx=3, pady=0, sticky="w")
+        self.canvas_height_edit = addwidgets.IntEdit(self.canvas_frame, "height", entry_width=4, default=int(self.canvas["height"]))
         self.canvas_height_edit.var.trace_add("write", lambda *args: self.configure_canvas(height=self.canvas_height_edit.get()))
-        self.canvas_height_edit.pack(side="left", padx=3, pady=3)
+        self.canvas_height_edit.grid(row=1, column=2, padx=3, pady=0, sticky="w")
 
         self.toolbar.add_tool("cursor")
         self.toolbar.add_tool("line")
@@ -136,15 +107,6 @@ class TkinterPaint(tk.Tk):
             if self.toolbar.tool.get() == "set_xy":
                 self.toolbar.set_tool(None)
 
-    def load_config(self):
-        with open("config.json", "r") as f:
-            json_obj = json.load(f)
-            self.custom_config = json_obj
-
-    def save_config(self):
-        with open("config.json", "w") as f:
-            f.write(json.dumps(self.custom_config))
-
     def save(self):
         """
         Saves the content of codetext
@@ -157,45 +119,37 @@ class TkinterPaint(tk.Tk):
             return
         file.write(self.codetext.get('1.0', 'end'))
         file.close()
-        #with open(file, "r") as f:
-        #    f.write()
 
     def set_theme(self, name):
         canvas_color = self.canvas.configure("bg")
         self.theme_manager.set_theme(name)
-        #self.refresh()
         self.codetext.update_theme()
         self.canvas.configure(bg=canvas_color[-1])
         self.update()
-        self.custom_config["theme"] = name
-        self.save_config()
-        #self.recreate_listboxes()
-    
-    #def recreate_listboxes(self):
-    #    self.children
+        ConfigManager.set("theme", name)
 
     def configure_canvas(self, **kwargs):
         canvas_name = kwargs.pop("canvas_name", None)
+        if canvas_name is not None:
+            ConfigManager.set("canvas_name", canvas_name)
         options = remove_default_options(kwargs, self.canvas.configure())
         self.canvas.configure(**options)
         self.codetext.configure_canvas(canvas_name=canvas_name, **options)
 
-    #def refresh(self):
-    #    self.destroy()
-    #    self.__init__()
 
 class PaintCanvas(tk.Canvas):
     """
     tk.Canvas where you can paint stuff,
     """
 
-    def __init__(self, master, toolbar: ToolBar, optionsbar: OptionsBar, codetext_, *args, **kwargs):
+    def __init__(self, master, toolbar: ToolBar, optionsbar: OptionsBar, codetext_, xy_var, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.toolbar = toolbar
         self.toolbar.tool.trace_add("write", self.delete_holo)
         self.optionsbar = optionsbar
         self.optionsbar.bind("<FocusOut>", self.delete_holo, True)
         self.codetext = codetext_
+        self.xy_var = xy_var
         self.create = {
             "line": self.create_line,
             "rectangle": self.create_rectangle,
@@ -225,6 +179,7 @@ class PaintCanvas(tk.Canvas):
         #used in the functionality that allows scalling from xy
         self.from_x = 0
         self.from_y = 0
+        
 
     def get_options(self):
         """
@@ -338,8 +293,12 @@ class PaintCanvas(tk.Canvas):
         self.delete(self.holo_item)
         self.holo_item = None
 
+    def _set_mouse_xy_label(self, x, y):
+        self.xy_var.set(f"{x},{y}")
+
     def motion(self, event):
         event.x, event.y = self._grid(event.x, event.y)
+        self._set_mouse_xy_label(event.x, event.y)
         if self.toolbar.get() == "set_xy":
             if self.holo_item is None:
                 self.holo_item = self.create_oval(event.x-3, event.y-3, event.x+3, event.y+3, fill="black", tags=("xy",))
@@ -422,6 +381,10 @@ class PaintCanvas(tk.Canvas):
         if self.holo_item is None:
             return
         if self.toolbar.get() in self.n_cord:
+            if self.toolbar.get() == "line" and len(self.curent_coords) < 4:
+                self.delete(self.holo_item)
+                self.holo_item = None
+                return
             self.create_item(self.toolbar.get(), *self.curent_coords, **self.get_options())
             self.delete(self.holo_item)
             self.holo_item = None

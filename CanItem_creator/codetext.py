@@ -28,7 +28,7 @@ class CodeText(tk.Text):
         self.insert("7.0", self.canvas_name, "canvas_name")
         self.insert("7.end", ".mainloop()")
 
-        #bind so that tge user can't edit the text:
+        #bind so that the user can't edit the text:
         self.bind("<KeyPress>", lambda *e: "break")
 
     def configure_canvas(self, canvas_name=None, **kwargs):
@@ -123,9 +123,6 @@ class CodeText(tk.Text):
         """
         self.delete("code -1 line", "code")
 
-    #def simple_code_build(self, canvas):
-    #    self. build_code(canvas, self.canvas_name, self.canvas_kwargs)
-
     def get_item(self, id_):
         """
         Retrieves code with item id_.
@@ -161,11 +158,10 @@ class CodeText(tk.Text):
             tag_range = self.tag_nextrange(tag, tag_i)
             if not tag_range:
                 continue
-            #this can couse errors when the text has tags on just parts of the text
+            #this can cause errors when the text has tags on just parts of the text
             #but it will work of now
             tags = self.tag_names(tag_range[0])
             self.replace(tag_range[0], tag_range[1], new, tags)
-        #self.replace(f"{tag}.first", f"{tag}.last", new, (f"{tag}",))
 
     def update_theme(self):
         self.configure(background=self.option_get("background", "Text"),

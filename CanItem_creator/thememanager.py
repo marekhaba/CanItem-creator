@@ -10,7 +10,7 @@ LIGHT_GREY = "#cccccc"
 WHITE = "#F0F0F0"
 DARKER_WHITE = "#C7C7C7"
 DARK_BLUE = "#3869A5"
-LIGHT_BLUE = "#3869A5"#"#7CDDDB"
+LIGHT_BLUE = "#3869A5" #"#7CDDDB"
 RED = "#6F1A07"
 
 class ThemeManager:
@@ -202,7 +202,6 @@ class ThemeManager:
         """
         if name not in self.style_options:
             return
-        #self.master.option_clear()
         for option in self.style_options[name]:
             self.master.option_add(*option)
 
@@ -251,40 +250,6 @@ class ThemeManager:
         self.style.configure("Error.TEntry",
             foreground=RED
         )
-    
-    def set_default(self):
-        """
-        Sets back to the theme that was by default used by tkinter
-        """
-        #BREKS OTHER THEMES
-        self.set_theme(self.default_theme)
-        #self.master.option_clear()
-        self.master.tk_setPalette(background="#FFFFFF", foreground="#000000",
-                                  insertBackground="#000000",
-                                  selectBackground="#010101",
-                                  selectForeground="#010102"
-                                 )
-        for option in self.default_options:
-            self.master.option_add(*option)
-        self.change_toplevel()
-        #self.master.option_add("*Text*background", DARKER_WHITE)
-        #self.master.option_add("*Text*foreground", DARK_BLUE)
-        #self.master.option_add("*Text*backgorund", DARKER_WHITE)
-        #self.master.
-
-# class ThemeManager:
-#     """
-#     Used to manage all custom themes.\n
-#     master should be tk.TK
-#     """
-#     def __init__(self, master):
-#         self.master = master
-#         self.style = ttk.Style(master)
-#         #print(self.style.lookup("TButton", "foreground", ("pressed",)))
-#         self.style.map("TRadiobutton.TButton",
-#             foreground=[("active", self.style.lookup("TButton", "foreground", ("pressed",)))],
-#             background=[("active", self.style.lookup("TButton", "background", ("pressed",)))]
-#         )
 
 if __name__ == "__main__":
     tk = tk.Tk()

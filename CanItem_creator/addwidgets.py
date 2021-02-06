@@ -40,7 +40,7 @@ class BaseEdit(ttk.Frame):
         self.var.set(value)
 
     def _set_default(self, *args):
-        #subclasses should have a way to call this emthod
+        #subclasses should have a way to call this method
         if self.default != "" and self.var.get() == "":
             self.set(self.default)
 
@@ -100,9 +100,7 @@ class IntEdit(BaseEdit):
         try:
             int(string)
             return True
-            #self.entry["style"] = "TEntry" TODO This will be moved to on_in/valid when I will finish themes
         except ValueError:
-            #self.entry["style"] = "Error.TEntry"
             return False
 
 class ColorEdit(BaseEdit):
